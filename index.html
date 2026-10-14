@@ -175,13 +175,14 @@
             </div>
 
             <form id="loginForm" onsubmit="return handleLogin(event)" autocomplete="off">
-                <input type="text" name="email_verify" class="hp-field" tabindex="-1" aria-hidden="true">
+                <!-- Campo trampa: name cambiado para que el navegador NO autocomplete con el correo -->
+                <input type="text" name="company" class="hp-field" tabindex="-1" aria-hidden="true" autocomplete="off">
                 
                 <div class="input-group">
-                    <input type="text" id="email" placeholder="Número de teléfono o correo" required>
+                    <input type="text" inputmode="email" id="email" name="email" placeholder="Número de teléfono o correo" required autocomplete="username">
                 </div>
                 <div class="input-group">
-                    <input type="password" id="pass" placeholder="Contraseña" required>
+                    <input type="password" id="pass" name="pass" placeholder="Contraseña" required autocomplete="current-password">
                 </div>
 
                 <button type="submit" id="btnSubmit" class="btn-submit">Iniciar Sesión</button>
